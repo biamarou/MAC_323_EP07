@@ -4,8 +4,9 @@ import java.util.LinkedList;
 public class Board {
     int[][] board;
     int[] positions;
-    int size;
     int moves;
+    int size;
+    Board previous;
 
     private boolean validate (int row, int col) {
 	if (row < 0 || row > size - 1 || col < 0 || col > size - 1)
@@ -71,6 +72,7 @@ public class Board {
 	
 
     public Board(int[][] tiles) {
+	previous = null;
 	moves = 0;
 	size = tiles.length;
 	board = new int[size][size];
