@@ -4,6 +4,7 @@ import edu.princeton.cs.algs4.StdOut;
 import java.lang.Iterable;
 import java.util.Comparator;
 import java.util.Stack;
+import java.util.LinkedHashSet;
 
 public class Solver {
     MinPQ<Board> solver = null;
@@ -20,6 +21,7 @@ public class Solver {
 	if (!initial.isSolvable())
 	    return;
 	Iterable<Board> paths;
+	LinkedHashSet<Board> checked = new LinkedHashSet<Board>();
 	Board tmp, prev;
 
 	solver = new MinPQ<Board>(new BoardOrder());
@@ -28,23 +30,21 @@ public class Solver {
 
 	while(!((solver.min()).isGoal())) {
 	    tmp = solver.delMin();
+	    checked.add(tmp);
 	    paths = tmp.neighbors();
 	    
-            
+	          
 	    for(Board b : paths) {
-		if (prev != null && !b.equals(prev)) {
-                    
-		    b.previous = tmp;
+	        int priority_b = (b.manhattan() + b.moves);
+		int priority_tmp = (tmp.manhattan() + tmp.moves);
+		System.out.println( priority_b);
+		System.out.println( priority_tmp);
+
+		if (!checked.contains(b)) {
+                    b.previous = tmp;
 		    solver.insert(b);
 		}
-
-		else if (prev == null) {
-		    b.previous = tmp;
-		    solver.insert(b);
-		    
-		}	
 	    }
-	    prev = tmp;
 	}
 
 	
@@ -73,7 +73,7 @@ public class Solver {
 
 	Solver search = new Solver(initial);
 
-	if(search.solver == null) StdOut.println("no solution");
+	if(search.solver == null) StdOut.println("No solution.");
 	else {
 	    print = search.solver.delMin();
 

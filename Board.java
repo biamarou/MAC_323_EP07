@@ -3,9 +3,7 @@ import java.util.LinkedList;
 
 public class Board {
     int[][] board;
-    int[] positions;
-    int moves;
-    int size;
+    int moves, size, manhattan, hamming, inverted;
     Board previous;
 
     private boolean validate (int row, int col) {
@@ -13,20 +11,18 @@ public class Board {
 	    return false;
         return true;
     }
-	
+
     public void boardNeighbors (LinkedList<Board> list) {
-	int i, row, col;
-	for (i = 0; positions[i] != 0; i++);      
+        int row, col, blank;
+	blank = blankSquare();
+
+	row = blank / size;
+	col = blank % size;
 	
-	row = i/size; col = i % size;
-        	
-	if (validate(row + 1, col)) {
+        if (validate(row + 1, col)) {
 	    Board neighbors = new Board(board);
 	    neighbors.board[row][col] = board[row + 1][col];
 	    neighbors.board[row + 1][col] = 0;
-
-	    neighbors.positions[i] = positions[size*(row + 1) + col];
-	    neighbors.positions[size*(row + 1) + col] = 0;
 
 	    neighbors.moves = moves + 1;
 	    list.add(neighbors);
@@ -37,9 +33,6 @@ public class Board {
 	    neighbors.board[row][col] = board[row - 1][col];
 	    neighbors.board[row - 1][col] = 0;
 
-	    neighbors.positions[i] = positions[size*(row - 1) + col];
-	    neighbors.positions[size*(row - 1) + col] = 0;
-
 	    neighbors.moves = moves + 1;
 	    list.add(neighbors);
 	}
@@ -48,9 +41,6 @@ public class Board {
 	    Board neighbors = new Board(board);
 	    neighbors.board[row][col] = board[row][col + 1];
 	    neighbors.board[row][col + 1] = 0;
-
-	    neighbors.positions[i] = positions[size*row + col + 1];
-	    neighbors.positions[size*row + col + 1] = 0;
 
 	    neighbors.moves = moves + 1;
 	    list.add(neighbors);
@@ -61,29 +51,33 @@ public class Board {
 	    neighbors.board[row][col] = board[row][col - 1];
 	    neighbors.board[row][col - 1] = 0;
 
-	    neighbors.positions[i] = positions[size*row + col - 1];
-	    neighbors.positions[size*row + col - 1] = 0;
-
 	    neighbors.moves = moves + 1;
 	    list.add(neighbors);
 	}	    
 		
     }
-	
 
     public Board(int[][] tiles) {
 	previous = null;
-	moves = 0;
+	moves = manhattan = hamming = inverted = 0;
 	size = tiles.length;
 	board = new int[size][size];
-	positions = new int[size*size];
 
 	for (int i = 0; i < size; i++)
 	    for (int j = 0; j < size; j++)
-		positions[i * size + j] = board[i][j] = tiles[i][j];
-
+	       board[i][j] = tiles[i][j];
 	    
     } // construct a board from an N-by-N array of tiles (where tiles[i][j] = tile at row i, column j)
+
+    private int[] creates_positions () {
+	int[] positions = new int[size*size];
+
+	for (int i = 0; i < size; i++)
+	    for (int j = 0; j < size; j++)
+		positions[i * size + j] = board[i][j];
+
+	return positions;
+    }
 
     public int tileAt(int i, int j) {
 	return board[i][j];
@@ -94,11 +88,13 @@ public class Board {
     } // board size N
 
     public int hamming() {
-	int ham = 0;
-	for (int i = 0; i < size*size; i++)
-	    if (positions[i] != 0 && positions[i] != i + 1) ham++;
-
-	return ham;
+	if (hamming == 0) {   
+	    int[] positions = creates_positions(); 
+	    for (int i = 0; i < size*size; i++)
+		if (positions[i] != 0 && positions[i] != i + 1) hamming++;
+	}
+	return hamming;
+	
     } // number of tiles out of place
 
     private int modulus (int n) {
@@ -107,21 +103,27 @@ public class Board {
     }
 
     public int manhattan() {
-	int man, row, col, row_goal, col_goal;
-	man = 0;
-	for (int i = 0; i < size*size; i++) {
-	    if (positions[i] != 0 && positions[i] != i + 1) {
-		row_goal = ((positions[i] - 1) / size);
-		col_goal = ((positions[i] - 1) % size);
 
-	        row = i / size;
-		col = i % size;
+	if (manhattan == 0) {
+	    int man, row, col, row_goal, col_goal;
+	    int[] positions = creates_positions();
+	    man = 0;
+	    for (int i = 0; i < size*size; i++) {
+		if (positions[i] != 0 && positions[i] != i + 1) {
+		    row_goal = ((positions[i] - 1) / size);
+		    col_goal = ((positions[i] - 1) % size);
 
-		man += ((row_goal - row) + (col_goal - col));
+		    row = i / size;
+		    col = i % size;
+
+		    man += (modulus(row_goal - row) + modulus(col_goal - col));
+		}
 	    }
+	    
+            manhattan = man;
 	}
 
-        return modulus(man);
+	return manhattan;
     } // sum of Manhattan distances between tiles and goal
 
     public boolean isGoal() {
@@ -131,35 +133,56 @@ public class Board {
 			  
     } // is this board the goal board?
 
-    private int inverted() {
-	int j, invert;
-	invert = 0;
-	for (int i = 1; i < size*size; i++) {
-	    if (positions[i - 1] > positions[i]) {
-		j = i - 1;
-		while (j >= 0 && positions[j] > positions[i]) {
-		    invert++;
-		    j--;
-		}
+    
+    private int inverted () {
+	if (inverted == 0) {
+	    int[]positions = creates_positions();
+	
+	    int j, invert;
+	    invert = 0;
+	    
+	    for (int i = 1; i < size*size; i++) {
+		if (positions[i] != 0) {
+		    j = i - 1;
+		    while (j >= 0) {
+		        if (positions[j] > positions[i]) {
+			    invert++;
+		        }
+			j--;
+		    }
 		
+		}
 	    }
-	}
 
-	return invert;
+	    inverted = invert;
+	}
+	return inverted;
     }
 
+    
     private int blankSquare() {
 	int blank = 0;
-	for (int i = 0; i < size*size; i++)
-	    if (positions[i] == 0)
-		blank = i/size;
+	boolean found_flag = false;
+	for (int i = 0; i < size && !found_flag; i++) {
+	    for (int j = 0; j < size && !found_flag; j++) {
+		if (board[i][j] == 0) {
+		    found_flag = true;
+		    blank = i*size + j;
+		}
+	    }
+        }
+	    
 	return blank;
     }
 
     public boolean isSolvable() {
+	//if (isGoal()) return true;
+
 	int solve, blank;
 	blank = blankSquare();
+	blank /= size;
 	solve = inverted();
+        
 
 	if (size % 2 != 0) {
 	    if (solve % 2 != 0)
